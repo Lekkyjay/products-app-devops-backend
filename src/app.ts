@@ -1,4 +1,5 @@
 import express from 'express'
+import cors from 'cors'
 import os from 'os'
 import productRoutes from './routes/products'
 import categoryRoutes from './routes/categories'
@@ -9,6 +10,7 @@ const app = express()
 
 app.use(logger)
 app.use(express.json())
+app.use(cors())
 
 app.get('/api/hello', (req, res) => {
   res.send('Hello World!')
