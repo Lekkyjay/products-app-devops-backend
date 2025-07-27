@@ -59,3 +59,34 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKERHUB_USER }}/products-app-devops-backend:latest
           docker push ${{ secrets.DOCKERHUB_USER }}/products-app-devops-backend:${{ github.sha }}
+  
+  update-helm-values:
+    runs-on: ubuntu-latest
+    needs: build-and-push-image
+    steps:
+      - name: Checkout Helm-Charts Repository
+        uses: actions/checkout@v3
+        with:
+          repository: Lekkyjay/products-app-devops-helmcharts
+          token: ${{ secrets.INFRA_ACCESS_TOKEN }}
+          path: helm-charts
+
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      - name: Update Backend Image in Helm Chart
+        run: |
+          cd helm-charts
+          yq e '.image.tag = "${{ github.sha }}"' -i charts/backend/values.yaml
+          yq e '.image.repository = "${{ secrets.DOCKERHUB_USER }}/products-app-devops-backend"' -i charts/backend/values.yaml
+
+      - name: Commit and Push Changes
+        run: |
+          cd helm-charts
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Updated backend image to ${{ github.sha }}"
+          git push origin main
